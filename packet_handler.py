@@ -127,8 +127,7 @@ class PacketHandler(object):
             if not sniffedPacket or len(sniffedPacket.get_macPDU()) < 2:
                 return
 
-            rssiSniff, corr, crc_ok = self.checkPacket(
-                sniffedPacket.get_macPDU())
+            rssiSniff, corr, crc_ok = self.checkPacket(sniffedPacket.get_macPDU())
 
             if not crc_ok:
                 self.stats["CRC Errors"] += 1
@@ -137,8 +136,7 @@ class PacketHandler(object):
             customFrame = self.handleCustomFrames(sniffedPacket)
             if customFrame:
                 # A custom, non-802.15.4 frame was received and processed
-                capture = CapturedFrame(customFrame, rssiSniff,
-                                        self.__annotation)
+                capture = CapturedFrame(customFrame, rssiSniff,self.__annotation)
                 self.captures.append(capture)
                 print(capture)
                 sys.stdout.flush()

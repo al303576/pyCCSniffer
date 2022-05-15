@@ -129,29 +129,28 @@ class CC253xEMK:
 
             if len(bytesteam) >= 3:
                 (cmd, payload_len) = struct.unpack_from("<BH", bytesteam)
+                
                 payload = bytesteam[3:]
+                
                 if len(payload) == payload_len:
                     # buffer contains the correct number of bytes
                     if CC253xEMK.COMMAND_FRAME == cmd:
                         logger.info(f'Read a frame of size {payload_len}')
-                        timestamp, frame_len = struct.unpack_from(
-                            "<IB", payload)
+                        timestamp, frame_len = struct.unpack_from("<IB", payload)
                         frame = payload[5:]
 
                         if len(frame) == frame_len:
                             self.handler.received_valid_frame(timestamp, frame)
 
                         else:
-                            self.handler.received_invalid_frame(
-                                timestamp, frame_len, frame)
+                            self.handler.received_invalid_frame(timestamp, frame_len, frame)
+
                     elif CC253xEMK.HEARTBEAT_FRAME == cmd:
                         self.handler.received_heartbeat_frame(payload[0])
                     else:
-                        self.handler.received_unknown_command(
-                            cmd, payload_len, payload)
+                        self.handler.received_unknown_command(cmd, payload_len, payload)
                 else:
-                    self.handler.received_invalid_command(
-                        cmd, payload_len, bytesteam)
+                    self.handler.received_invalid_command(cmd, payload_len, bytesteam)
 
     def set_channel(self, channel):
         was_running = self.running

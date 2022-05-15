@@ -36,7 +36,7 @@ from io import StringIO
 
 from cc253xemk import CC253xEMK
 from packet_handler import PacketHandler, SniffedPacket
-
+from dcf import DcfPacket
 """
    Functionality
    -------------
@@ -63,6 +63,15 @@ class DefaultHandler:
         self.stats = {} if stats is None else stats
         self.stats['Captured'] = 0
         self.stats['Non-Frame'] = 0
+        
+        # Centralized and Distributed defaults TC keys added by default
+        self.stats['DCF-Packets'] = [
+            "#Format=4",
+            "# SNA v2.2.0.4 SUS:20090709 ACT:819705",
+            '#SEC_KEY:panid=-1 type=2 seqnum=-1 device1="................" device2="................" key="5A6967426565416C6C69616E63653039"',
+            '#SEC_KEY:panid=-1 type=2 seqnum=-1 device1="................" device2="................" key="D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"'
+            ]
+        
         self.last_timestamp = -1
         self.start_seconds = (datetime.now() -
                               datetime(1970, 1, 1)).total_seconds()
@@ -85,11 +94,11 @@ class DefaultHandler:
                 logger.warning(f"Timestamp wrapped - {self.times_wrapped}")
 
             self.last_timestamp = timestamp
-            synced_timestamp = self.start_seconds + (
-                (self.times_wrapped << 32) | timestamp)
+            synced_timestamp = self.start_seconds + ( (self.times_wrapped << 32) | timestamp )
             self.stats['Captured'] += 1
-
             packet = SniffedPacket(mac_pdu, synced_timestamp)
+            self.stats['DCF-Packets'].append(f'{DcfPacket(packet, self.stats)}')
+
             for handler in self.__handlers:
                 handler.handleSniffedPacket(packet)
 
@@ -115,6 +124,7 @@ class DefaultHandler:
 
 
 def arg_parser():
+    
     debug_choices = ('DEBUG', 'INFO', 'WARNING', 'ERROR')
 
     parser = argparse.ArgumentParser(add_help=False,
@@ -123,6 +133,7 @@ def arg_parser():
                                      )
 
     in_group = parser.add_argument_group('Input Options')
+    
     in_group.add_argument(
         '-c',
         '--channel',
@@ -133,6 +144,7 @@ def arg_parser():
         help=
         f"Set the sniffer's CHANNEL. Valid range: 11-26. (Default: {defaults['channel']}",
     )
+
     in_group.add_argument(
         '-a',
         '--annotation',
@@ -140,6 +152,7 @@ def arg_parser():
         help='Include a free-form annotation on every capture.')
 
     log_group = parser.add_argument_group('Verbosity and Logging')
+    
     log_group.add_argument(
         '-r',
         '--rude',
@@ -148,6 +161,7 @@ def arg_parser():
         help=
         'Run in non-interactive mode, without accepting user input. (Default Disabled)'
     )
+    
     log_group.add_argument(
         '-D',
         '--debug-level',
@@ -157,6 +171,7 @@ def arg_parser():
         help=
         f"Print messages of severity DEBUG_LEVEL or higher (Default {defaults['debug_level']}",
     )
+    
     log_group.add_argument('-L',
                            '--log-file',
                            action='store',
@@ -178,10 +193,12 @@ def arg_parser():
                            )
 
     gen_group = parser.add_argument_group('General Options')
+    
     gen_group.add_argument('-v',
                            '--version',
                            action='version',
                            version=f'pyCCSniffer v{__version__}')
+    
     gen_group.add_argument('-h',
                            '--help',
                            action='help',
@@ -195,9 +212,15 @@ def dump_stats(stats):
 
     s.write('Frame Stats:\n')
     for name, count in list(stats.items()):
+        if name == "DCF-Packets": 
+            continue
         s.write(f'{name:20s}: {count}\n')
 
     print(s.getvalue())
+
+    with open("dcf_file_created.dcf", 'w') as file_handler:
+        for item in stats['DCF-Packets']:
+            file_handler.write("{}\n".format(item))
 
 
 def log_init():
@@ -223,12 +246,15 @@ if __name__ == '__main__':
 
     logger.info('Started logging')
 
+    dcf_packets = []
     stats = {}
     packetHandler = PacketHandler(stats)
     packetHandler.enable()
 
     if args.annotation:
         packetHandler.setAnnotation(args.annotation)
+
+    stats['Channel'] = args.channel
 
     # Create a list of handlers to dispatch to, NB: handlers must have a "handleSniffedPacket" method
     handler = DefaultHandler([packetHandler], stats=stats)
@@ -303,6 +329,7 @@ if __name__ == '__main__':
                                 packetHandler.setAnnotation(cmd[1:].strip())
                         elif int(cmd) in range(11, 27):
                             snifferDev.set_channel(int(cmd))
+                            stats['Channel'] = cmd
                             print(
                                 f'Sniffing in channel: {snifferDev.get_channel()}'
                             )
