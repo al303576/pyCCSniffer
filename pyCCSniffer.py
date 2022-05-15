@@ -64,13 +64,7 @@ class DefaultHandler:
         self.stats['Captured'] = 0
         self.stats['Non-Frame'] = 0
         
-        # Centralized and Distributed defaults TC keys added by default
-        self.stats['DCF-Packets'] = [
-            "#Format=4",
-            "# SNA v2.2.0.4 SUS:20090709 ACT:819705",
-            '#SEC_KEY:panid=-1 type=2 seqnum=-1 device1="................" device2="................" key="5A6967426565416C6C69616E63653039"',
-            '#SEC_KEY:panid=-1 type=2 seqnum=-1 device1="................" device2="................" key="D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"'
-            ]
+        self.stats['DCF-Packets'] = [DcfPacket.dcf_header()]
         
         self.last_timestamp = -1
         self.start_seconds = (datetime.now() -
@@ -100,16 +94,26 @@ class DefaultHandler:
             packet = SniffedPacket(mac_pdu, synced_timestamp)
 
             # Add the raw packet to the DCF packet list, this list will be written to a dcf file
-            dcf_packet = DcfPacket(packet, self.stats)
+            rssi, corr, crc_ok = PacketHandler.checkPacket(packet._SniffedPacket__macPDUByteArray)
+
+            dcf_packet = DcfPacket(
+                                    sequence_number=self.stats['Captured'],
+                                    channel=defaults['channel'],
+                                    timestamp=packet.timestampUsec,
+                                    length=packet.len,
+                                    data=packet._SniffedPacket__macPDUByteArray,
+                                    lqi= corr,
+                                    fcs=1 if crc_ok else 0,
+                                    power_dbm=rssi
+                                   )
+
             self.stats['DCF-Packets'].append(str(dcf_packet))
 
             for handler in self.__handlers:
                 handler.handleSniffedPacket(packet)
 
     def received_invalid_frame(self, timestamp, frame_len, frame):
-        logger.warning(
-            f"Received a frame with incorrect length, pkgLen:{frame_len}, len(frame):{len(frame)}"
-        )
+        logger.warning(f"Received a frame with incorrect length, pkgLen:{frame_len}, len(frame):{len(frame)}")
         self.stats['Non-Frame'] += 1
 
     def received_heartbeat_frame(self, counter):
