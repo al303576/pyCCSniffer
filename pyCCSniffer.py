@@ -95,9 +95,13 @@ class DefaultHandler:
 
             self.last_timestamp = timestamp
             synced_timestamp = self.start_seconds + ( (self.times_wrapped << 32) | timestamp )
+            
             self.stats['Captured'] += 1
             packet = SniffedPacket(mac_pdu, synced_timestamp)
-            self.stats['DCF-Packets'].append(f'{DcfPacket(packet, self.stats)}')
+
+            # Add the raw packet to the DCF packet list, this list will be written to a dcf file
+            dcf_packet = DcfPacket(packet, self.stats)
+            self.stats['DCF-Packets'].append(str(dcf_packet))
 
             for handler in self.__handlers:
                 handler.handleSniffedPacket(packet)
@@ -274,7 +278,7 @@ if __name__ == '__main__':
         h.write('d: Toggle frame dissector\n')
         h.write('a*: Set an annotation (write "a" to remove it)\n')
         h.write('p: Print all capture packets\n')
-        h.write('q: Quit')
+        h.write('q: Quit the program and creates a dcf with the captured packets\n')
         h = h.getvalue()
         print(h)
 

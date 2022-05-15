@@ -5,7 +5,6 @@ class DcfPacket(object):
         
         self.sequence_number = stats['Captured']
         seconds = SniffedPacket.timestampUsec / 1e6
-        u_seconds = f'{int(SniffedPacket.timestampUsec % 1e6):<06d}'
         self.timestamp = f'{seconds:.6f}'
         self.length = SniffedPacket.len
         self.data = bytearray(SniffedPacket._SniffedPacket__macPDUByteArray).hex()
