@@ -45,6 +45,7 @@ class DcfPacket(object):
         seconds = timestamp / 1e6
         # timestamp needs to be forced to have only 6 digits in its float part, 
         # otherwise some decoders will not be able to decode the packet.
+        # i.e 53.580159244 -> 53.580159
         self.timestamp = f'{seconds:.6f}'
         self.length = length
 
@@ -68,8 +69,8 @@ class DcfPacket(object):
         """
         dcf_entry = (f"{self.sequence_number} "
                      f"{self.timestamp} "
-                    f"{self.length} "
-                    f"{self.data} "
+                     f"{self.length} "
+                     f"{self.data} "
                      f"{self.lqi} "
                      f"{self.fcs} "
                      f"{self.power_dbm} "
