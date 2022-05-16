@@ -2,6 +2,7 @@
     part of this code was inspired by the work done by Andrew Dodd (andrew.john.dodd@gmail.com)"""
 
 import errno
+from tkinter.tix import Tree
 import usb.core
 import usb.util
 import cc253xemk
@@ -15,9 +16,9 @@ class CC253xEmkMULTI(cc253xemk.CC253xEMK):
     def __init__(self,device=None, handler=None, channel=11, auto_init=False):
         super().__init__(handler, channel, auto_init)
 
-        # self.bcdDevice = device.bcdDevice
         self.dev = device
         self.name = usb.util.get_string(self.dev, self.dev.iProduct)
+        self.free=True
     
     def __repr__(self):
         if self.dev:
@@ -39,8 +40,6 @@ def _collect_cc253x_devices():
 
             for usb_device in usb_devices:
                 ti_devices.append(CC253xEmkMULTI(device=usb_device))
-
-            # bcdDevice
 
         return ti_devices
 
@@ -64,15 +63,21 @@ class SingleTonCC253XX(object):
         return self._instance
 
     def __init__(self):
-        """Collect all CC253xEMK devices on the current USB bus.
-
-        """
+        """Creates the object and collect all CC253xEMK 
+        devices on the current USB bus."""
+        
         self.name = "CC253XX"
-        self.version = "1.0"
+        self.version = "0.1"
         self.devices = _collect_cc253x_devices()
 
     def get_one_sniffer(self):
-        """Get one sniffer device from the list of devices.
-        """
+        """Get one free sniffer device from the list of devices."""
+        
         for device in self.devices:
-            return device
+            if device.free:
+                device.free = False
+                return device
+
+    def release_sniffer(self, device):
+        """Release a sniffer device from the list of devices."""
+        device.free = True
