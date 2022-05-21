@@ -37,6 +37,7 @@ from io import StringIO
 from cc253xemk import CC253xEMK
 from packet_handler import PacketHandler, SniffedPacket
 from dcf import DcfPacket
+from cc253xxSingleton import SingleTonCC253XX
 """
    Functionality
    -------------
@@ -267,7 +268,12 @@ if __name__ == '__main__':
     # Create a list of handlers to dispatch to, NB: handlers must have a "handleSniffedPacket" method
     handler = DefaultHandler([packetHandler], stats=stats)
 
-    snifferDev = CC253xEMK(handler, args.channel)
+    # snifferDev = CC253xEMK(handler, args.channel)
+
+    snifferDev = SingleTonCC253XX().getInstance().get_one_sniffer()
+    snifferDev = SingleTonCC253XX().getInstance().get_one_sniffer()
+    snifferDev.channel = args.channel
+    snifferDev.handler = handler
 
     def printHelp():
         h = StringIO()
